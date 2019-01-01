@@ -2,6 +2,7 @@ package com.globalLogic.carRide.service;
 
 import com.globalLogic.carRide.dto.BookingDto;
 import com.globalLogic.carRide.dto.BookingStatus;
+import com.globalLogic.carRide.dto.DriverDto;
 import com.globalLogic.carRide.model.BookingEntity;
 import com.globalLogic.carRide.model.CustomerEntity;
 import com.globalLogic.carRide.repository.BookingRepo;
@@ -15,6 +16,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -26,6 +28,9 @@ public class BookingService {
 
     @Autowired
     private CustomerRepo customerRepo;
+
+    @Autowired
+    DriverServiceProxy driverServiceProxy;
 
     /**
      * Below map is the data structure which holds static data of destinations and distances.
@@ -58,6 +63,7 @@ public class BookingService {
 
     public String bookCab(String customerId, BookingDto bookingDto) {
         Optional<CustomerEntity> persistedCustomer = customerRepo.findByCid(customerId);
+        List<DriverDto> allDrivers = driverServiceProxy.getAllDrivers(bookingDto.getCabType());
         BookingEntity bookingEntity = setBooking(persistedCustomer.get(),bookingDto);
         bookingRepo.save(bookingEntity);
         BookingStatus status = bookingEntity.getStatus();
@@ -70,7 +76,7 @@ public class BookingService {
         LocalDateTime now = initializeBasicBooking(customerEntityPersisted, bookingDto, bookingEntity);
         // Below logic is for calculation of fare.
         //We have two fare calculation models.
-        calculatedFare = applyfarecalulationmodel(bookingDto, now);
+        calculatedFare = applyFareCalulationModel(bookingDto, now);
         bookingEntity.setFare(calculatedFare);
         return bookingEntity;
     }
@@ -81,7 +87,7 @@ public class BookingService {
      * @param now
      * @return
      */
-    private BigInteger applyfarecalulationmodel(BookingDto bookingDto, LocalDateTime now) {
+    private BigInteger applyFareCalulationModel(BookingDto bookingDto, LocalDateTime now) {
         BigInteger calculatedFare;
         if(now.isAfter(LocalDateTime.of(LocalDate.now(), LocalTime.of(9,0)))
                 && now.isBefore(LocalDateTime.of(LocalDate.now(), LocalTime.of(12,0))))
